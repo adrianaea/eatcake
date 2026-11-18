@@ -17,7 +17,7 @@ let cakes = [];
 let poisonedCakeIndices = new Set();
 
 async function setup() {
-    createCanvas(1500, 1200);
+    createCanvas(1500, windowHeight);
     img = await loadImage('assets/caketable.jpg'); 
     cake1 = await loadImage('assets/cake1.png'); 
     cake2 = await loadImage('assets/cake2.png'); 
@@ -35,20 +35,20 @@ async function setup() {
     cake14 = await loadImage('assets/cake14.png'); 
 
     cakes = [
-        { image: cake1, x: 165, y: 660, w: 100, h: 120 },
-        { image: cake2, x: 1120, y: 685, w: 120, h: 120 },
-        { image: cake3, x: 700, y: 700, w: 120, h: 100 },
-        { image: cake4, x: 900, y: 550, w: 120, h: 100 },
+        { image: cake1, x: 165, y: 500, w: 100, h: 120 },
+        { image: cake2, x: 1210, y: 450, w: 120, h: 120 },
+        { image: cake3, x: 700, y: 600, w: 120, h: 100 },
+        { image: cake4, x: 910, y: 470, w: 120, h: 100 },
         { image: cake5, x: 500, y: 600, w: 120, h: 100 },
-        { image: cake6, x: 800, y: 650, w: 120, h: 100 },
-        { image: cake7, x: 600, y: 500, w: 120, h: 100 },
+        { image: cake6, x: 820, y: 550, w: 120, h: 100 },
+        { image: cake7, x: 600, y: 540, w: 120, h: 100 },
         { image: cake8, x: 400, y: 550, w: 120, h: 100 },
         { image: cake9, x: 1000, y: 600, w: 120, h: 100 },
-        { image: cake10, x: 1100, y: 500, w: 120, h: 100 },
+        { image: cake10, x: 1100, y: 540, w: 120, h: 100 },
         { image: cake11, x: 1200, y: 600, w: 120, h: 100 },
-        { image: cake12, x: 260, y: 650, w: 120, h: 100 },
-        { image: cake13, x: 380, y: 660, w: 120, h: 100 },
-        { image: cake14, x: 500, y: 700, w: 120, h: 100 },
+        { image: cake12, x: 260, y: 600, w: 120, h: 100 },
+        { image: cake13, x: 380, y: 450, w: 120, h: 100 },
+        { image: cake14, x: 500, y: 600, w: 120, h: 100 },
     ];
     const poisonedCakeCount = floor(random(3, 6));
     while (poisonedCakeIndices.size < poisonedCakeCount) {
@@ -59,6 +59,8 @@ async function setup() {
 function draw() {
     background(220);
     image(img, 0, 0, width, height);
+
+
     cakes.forEach((cake, index) => {
         const hovered = mouseX >= cake.x && mouseX <= cake.x + cake.w
             && mouseY >= cake.y && mouseY <= cake.y + cake.h;
@@ -73,7 +75,7 @@ function draw() {
 function drawGlowingCake(cake, x, y, w, h, glowColor) {
     drawingContext.save();
     drawingContext.shadowColor = glowColor;
-    drawingContext.shadowBlur = 24;
+    drawingContext.shadowBlur = 34;
     image(cake, x, y, w, h);
     drawingContext.restore();
 }
