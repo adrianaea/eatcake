@@ -1,81 +1,200 @@
 let img;
-let cake1;
-let cake2;
-let cake3;
-let cake4;
-let cake5; 
-let cake6;
-let cake7;
-let cake8;
-let cake9;
-let cake10;
-let cake11;
-let cake12;
-let cake13;
-let cake14; 
 let cakes = [];
 let poisonedCakeIndices = new Set();
+let gameStarted = false;
+let visionImpaired = false;
+let startButton;
+let restartButton;
+
+const cakeComments = [
+  "These cakes are deathly delicious.",
+  "That cake will take you to heaven.",
+  "A royal treat… with a suspicious aftertaste.",
+  "One bite, and the ball will be unforgettable.",
+  "The frosting is almost too good to be true.",
+  "A little slice of paradise—or peril.",
+  "The Queen's baker has outdone themself.",
+];
 
 async function setup() {
-    createCanvas(1500, windowHeight);
-    img = await loadImage('assets/caketable.jpg'); 
-    cake1 = await loadImage('assets/cake1.png'); 
-    cake2 = await loadImage('assets/cake2.png'); 
-    cake3 = await loadImage('assets/cake3.png'); 
-    cake4 = await loadImage('assets/cake4.png'); 
-    cake5 = await loadImage('assets/cake5.png'); 
-    cake6 = await loadImage('assets/cake6.png'); 
-    cake7 = await loadImage('assets/cake7.png'); 
-    cake8 = await loadImage('assets/cake8.png'); 
-    cake9 = await loadImage('assets/cake9.png'); 
-    cake10 = await loadImage('assets/cake10.png'); 
-    cake11 = await loadImage('assets/cake11.png'); 
-    cake12 = await loadImage('assets/cake12.png'); 
-    cake13 = await loadImage('assets/cake13.png'); 
-    cake14 = await loadImage('assets/cake14.png'); 
+  createCanvas(1500, windowHeight);
+  img = await loadImage("assets/caketable.jpg");
 
-    cakes = [
-        { image: cake1, x: 165, y: 500, w: 100, h: 120 },
-        { image: cake2, x: 1210, y: 450, w: 120, h: 120 },
-        { image: cake3, x: 700, y: 600, w: 120, h: 100 },
-        { image: cake4, x: 910, y: 470, w: 120, h: 100 },
-        { image: cake5, x: 500, y: 600, w: 120, h: 100 },
-        { image: cake6, x: 820, y: 550, w: 120, h: 100 },
-        { image: cake7, x: 600, y: 540, w: 120, h: 100 },
-        { image: cake8, x: 400, y: 550, w: 120, h: 100 },
-        { image: cake9, x: 1000, y: 600, w: 120, h: 100 },
-        { image: cake10, x: 1100, y: 540, w: 120, h: 100 },
-        { image: cake11, x: 1200, y: 600, w: 120, h: 100 },
-        { image: cake12, x: 260, y: 600, w: 120, h: 100 },
-        { image: cake13, x: 380, y: 450, w: 120, h: 100 },
-        { image: cake14, x: 500, y: 600, w: 120, h: 100 },
-    ];
-    const poisonedCakeCount = floor(random(3, 6));
-    while (poisonedCakeIndices.size < poisonedCakeCount) {
-        poisonedCakeIndices.add(floor(random(cakes.length)));
-    }
+  const cakeImages = [];
+  for (let cakeNumber = 1; cakeNumber <= 14; cakeNumber++) {
+    cakeImages.push(await loadImage(`assets/cake${cakeNumber}.png`));
+  }
+
+  cakes = [
+    { image: cakeImages[0], x: 165, y: 500, w: 100, h: 120 },
+    { image: cakeImages[1], x: 1210, y: 450, w: 120, h: 120 },
+    { image: cakeImages[2], x: 700, y: 600, w: 120, h: 100 },
+    { image: cakeImages[3], x: 910, y: 470, w: 120, h: 100 },
+    { image: cakeImages[4], x: 500, y: 600, w: 120, h: 100 },
+    { image: cakeImages[5], x: 820, y: 550, w: 120, h: 100 },
+    { image: cakeImages[6], x: 600, y: 540, w: 120, h: 100 },
+    { image: cakeImages[7], x: 400, y: 550, w: 120, h: 100 },
+    { image: cakeImages[8], x: 1000, y: 600, w: 120, h: 100 },
+    { image: cakeImages[9], x: 1100, y: 540, w: 120, h: 100 },
+    { image: cakeImages[10], x: 1200, y: 600, w: 120, h: 100 },
+    { image: cakeImages[11], x: 260, y: 600, w: 120, h: 100 },
+    { image: cakeImages[12], x: 380, y: 450, w: 120, h: 100 },
+    { image: cakeImages[13], x: 500, y: 600, w: 120, h: 100 },
+  ];
+
+  choosePoisonedCakes();
+
+  startButton = createButton("Let Them Eat Cake!");
+  startButton.position(50, 200);
+  startButton.size(300, 60);
+  startButton.style("font-size", "24px");
+  startButton.style("background-color", "#FFB6C1");
+  startButton.style("border", "3px solid #FF69B4");
+  startButton.style("border-radius", "10px");
+  startButton.style("cursor", "pointer");
+  startButton.style("font-weight", "bold");
+  startButton.mousePressed(() => {
+    gameStarted = true;
+    startButton.hide();
+  });
+
+  restartButton = createButton("Try Again");
+  restartButton.size(180, 52);
+  restartButton.style("font-size", "20px");
+  restartButton.style("background-color", "#FFB6C1");
+  restartButton.style("border", "3px solid #FF69B4");
+  restartButton.style("border-radius", "10px");
+  restartButton.style("cursor", "pointer");
+  restartButton.style("font-weight", "bold");
+  restartButton.mousePressed(() => {
+    visionImpaired = false;
+    choosePoisonedCakes();
+    restartButton.hide();
+  });
+  restartButton.hide();
 }
 
 function draw() {
-    background(220);
-    image(img, 0, 0, width, height);
+  if (gameStarted) {
+    cakeTable();
+  } else {
+    welcome();
+  }
+}
 
+function welcome() {
+  background(72, 32, 54);
+  fill(255, 235, 241);
+  textAlign(LEFT, CENTER);
+  textSize(32);
+  text("Welcome! You have been invited to the Queen's Ball!", 50, 100);
+  textSize(20);
+  text("Choose carefully… not every sweet treat is safe.", 50, 150);
+}
 
-    cakes.forEach((cake, index) => {
-        const hovered = mouseX >= cake.x && mouseX <= cake.x + cake.w
-            && mouseY >= cake.y && mouseY <= cake.y + cake.h;
-        const glowColor = hovered
-            ? (poisonedCakeIndices.has(index) ? 'rgba(4, 255, 0, 0.95)' : 'rgba(255, 149, 230, 0.95)')
-            : 'rgba(4, 4, 4, 0.99)';
-        drawGlowingCake(cake.image, cake.x, cake.y, cake.w, cake.h, glowColor);
-    });
+function cakeTable() {
+  image(img, 0, 0, width, height);
+  let hoveredCake = -1;
 
+  cakes.forEach((cake, index) => {
+    const hovered =
+      mouseX >= cake.x &&
+      mouseX <= cake.x + cake.w &&
+      mouseY >= cake.y &&
+      mouseY <= cake.y + cake.h;
+
+    if (hovered) hoveredCake = index;
+
+    const glowColor = hovered
+      ? poisonedCakeIndices.has(index)
+        ? "rgba(145, 5, 26, 0.95)"
+        : "rgba(255, 149, 230, 0.95)"
+      : "rgba(4, 4, 4, 0.99)";
+    drawGlowingCake(cake.image, cake.x, cake.y, cake.w, cake.h, glowColor);
+  });
+
+  if (hoveredCake !== -1) {
+    drawCakeComment(cakeComments[hoveredCake % cakeComments.length]);
+  }
+
+  if (visionImpaired) {
+    drawImpairedVision();
+    restartButton.position((width - 180) / 2, height - 100);
+    restartButton.show();
+  } else {
+    restartButton.hide();
+  }
+}
+
+function choosePoisonedCakes() {
+  poisonedCakeIndices.clear();
+  const poisonedCakeCount = floor(random(3, 6));
+  while (poisonedCakeIndices.size < poisonedCakeCount) {
+    poisonedCakeIndices.add(floor(random(cakes.length)));
+  }
+}
+
+function drawCakeComment(comment) {
+  const boxWidth = min(width - 40, 640);
+  const boxX = (width - boxWidth) / 2;
+  const boxY = 24;
+
+  noStroke();
+  fill(35, 12, 25, 210);
+  rect(boxX, boxY, boxWidth, 58, 12);
+  fill(255, 238, 245);
+  textAlign(CENTER, CENTER);
+  textSize(22);
+  text(comment, width / 2, boxY + 29);
+}
+
+function drawImpairedVision() {
+  // A dark, soft-edged vignette makes the table harder to see after poisoned cake.
+  noStroke();
+  fill(12, 0, 10, 165);
+  rect(0, 0, width, height);
+
+  drawingContext.save();
+  const gradient = drawingContext.createRadialGradient(
+    width / 2,
+    height / 2,
+    min(width, height) * 0.08,
+    width / 2,
+    height / 2,
+    max(width, height) * 0.62
+  );
+  gradient.addColorStop(0, "rgba(10, 0, 12, 0.08)");
+  gradient.addColorStop(1, "rgba(10, 0, 12, 0.9)");
+  drawingContext.fillStyle = gradient;
+  drawingContext.fillRect(0, 0, width, height);
+  drawingContext.restore();
+
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  text("Your vision swims… that cake was poisoned!", width / 2, height - 45);
+}
+
+function mousePressed() {
+  if (!gameStarted || visionImpaired) return;
+
+  const clickedCakeIndex = cakes.findIndex(
+    (cake) =>
+      mouseX >= cake.x &&
+      mouseX <= cake.x + cake.w &&
+      mouseY >= cake.y &&
+      mouseY <= cake.y + cake.h
+  );
+
+  if (poisonedCakeIndices.has(clickedCakeIndex)) {
+    visionImpaired = true;
+  }
 }
 
 function drawGlowingCake(cake, x, y, w, h, glowColor) {
-    drawingContext.save();
-    drawingContext.shadowColor = glowColor;
-    drawingContext.shadowBlur = 34;
-    image(cake, x, y, w, h);
-    drawingContext.restore();
+  drawingContext.save();
+  drawingContext.shadowColor = glowColor;
+  drawingContext.shadowBlur = 34;
+  image(cake, x, y, w, h);
+  drawingContext.restore();
 }
