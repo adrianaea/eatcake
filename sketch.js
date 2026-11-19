@@ -4,6 +4,10 @@ let cakes = [];
 let poisonedCakeIndices = new Set();
 let gameStarted = false;
 let visionImpaired = false;
+let poisonBitesTaken = 0;
+let poisonedCakesEaten = 0;
+let health = 100;
+let knockedOut = false;
 let startButton;
 let restartButton;
 let backButton;
@@ -50,8 +54,12 @@ async function setup() {
     { image: cakeImages[10], x: 1200, y: 600, w: 120, h: 100 },
     { image: cakeImages[11], x: 260, y: 600, w: 120, h: 100 },
     { image: cakeImages[12], x: 380, y: 450, w: 120, h: 100 },
-    { image: cakeImages[13], x: 500, y: 600, w: 120, h: 100 },
+    { image: cakeImages[13], x: 520, y: 420, w: 120, h: 100 },
   ];
+  cakes.forEach((cake) => {
+    cake.bites = 0;
+    cake.bitesNeeded = floor(random(3, 6));
+  });
 
   choosePoisonedCakes();
 
@@ -99,6 +107,14 @@ async function setup() {
   restartButton.style("font-weight", "bold");
   restartButton.mousePressed(() => {
     visionImpaired = false;
+    poisonBitesTaken = 0;
+    poisonedCakesEaten = 0;
+    health = 100;
+    knockedOut = false;
+    cakes.forEach((cake) => {
+      cake.bites = 0;
+      cake.bitesNeeded = floor(random(3, 6));
+    });
     choosePoisonedCakes();
     restartButton.hide();
   });
@@ -154,7 +170,19 @@ function drawRoomTransition() {
 
 function drawCakeTableScene() {
   image(img, 0, 0, width, height);
-  cakes.forEach((cake) => image(cake.image, cake.x, cake.y, cake.w, cake.h));
+  cakes.forEach((cake) => {
+    if (cake.bites >= cake.bitesNeeded) return;
+    const sizeFactor = 1 - cake.bites * 0.14;
+    const currentW = cake.w * sizeFactor;
+    const currentH = cake.h * sizeFactor;
+    image(
+      cake.image,
+      cake.x + (cake.w - currentW) / 2,
+      cake.y + cake.h - currentH,
+      currentW,
+      currentH
+    );
+  });
 }
 
 function welcome() {
@@ -174,6 +202,14 @@ function cakeTable() {
   let hoveredCake = -1;
 
   cakes.forEach((cake, index) => {
+    if (cake.bites >= cake.bitesNeeded) return;
+
+    const sizeFactor = 1 - cake.bites * 0.14;
+    const currentW = cake.w * sizeFactor;
+    const currentH = cake.h * sizeFactor;
+    const drawX = cake.x + (cake.w - currentW) / 2;
+    const drawY = cake.y + cake.h - currentH;
+
     const hovered =
       mouseX >= cake.x &&
       mouseX <= cake.x + cake.w &&
@@ -187,20 +223,30 @@ function cakeTable() {
         ? "rgba(145, 5, 26, 0.95)"
         : "rgba(255, 149, 230, 0.95)"
       : "rgba(4, 4, 4, 0.99)";
-    drawGlowingCake(cake.image, cake.x, cake.y, cake.w, cake.h, glowColor);
+    drawGlowingCake(cake.image, drawX, drawY, currentW, currentH, glowColor);
   });
 
   if (hoveredCake !== -1) {
     drawCakeComment(cakeComments[hoveredCake % cakeComments.length]);
+    const cake = cakes[hoveredCake];
+    if (cake.bites > 0) {
+      drawBiteProgress(cake);
+    }
   }
 
   if (visionImpaired) {
     drawImpairedVision();
+  }
+
+  if (knockedOut) {
+    drawKnockedOutMessage();
     restartButton.position((width - 180) / 2, height - 100);
     restartButton.show();
   } else {
     restartButton.hide();
   }
+
+  drawHealthBar();
 }
 
 function choosePoisonedCakes() {
@@ -225,23 +271,35 @@ function drawCakeComment(comment) {
   text(comment, width / 2, boxY + 29);
 }
 
-function drawImpairedVision() {
-  // A dark, soft-edged vignette makes the table harder to see after poisoned cake.
+function drawBiteProgress(cake) {
   noStroke();
-  fill(12, 0, 10, 165);
+  fill(35, 12, 25, 210);
+  rect(width / 2 - 115, 88, 230, 36, 10);
+  fill(255, 238, 245);
+  textAlign(CENTER, CENTER);
+  textSize(16);
+  text(`Bites: ${cake.bites} / ${cake.bitesNeeded}`, width / 2, 106);
+}
+
+function drawImpairedVision() {
+  // Each poisoned bite deepens the vignette and makes the room harder to see.
+  const impairment = min(poisonBitesTaken, 6);
+  const overlayAlpha = map(impairment, 1, 6, 45, 175);
+  noStroke();
+  fill(12, 0, 10, overlayAlpha);
   rect(0, 0, width, height);
 
   drawingContext.save();
   const gradient = drawingContext.createRadialGradient(
-    width / 2,
+    width / 2, 
     height / 2,
     min(width, height) * 0.08,
     width / 2,
     height / 2,
     max(width, height) * 0.62
   );
-  gradient.addColorStop(0, "rgba(10, 0, 12, 0.08)");
-  gradient.addColorStop(1, "rgba(10, 0, 12, 0.9)");
+  gradient.addColorStop(0, `rgba(10, 0, 12, ${map(impairment, 1, 6, 0.02, 0.28)})`);
+  gradient.addColorStop(1, `rgba(10, 0, 12, ${map(impairment, 1, 6, 0.25, 0.95)})`);
   drawingContext.fillStyle = gradient;
   drawingContext.fillRect(0, 0, width, height);
   drawingContext.restore();
@@ -249,11 +307,48 @@ function drawImpairedVision() {
   fill(255);
   textAlign(CENTER, CENTER);
   textSize(24);
-  text("Your vision swims… that cake was poisoned!", width / 2, height - 45);
+  if (!knockedOut) {
+    text("Your vision swims… but you can still reach for another cake!", width / 2, height - 45);
+  }
+}
+
+function drawHealthBar() {
+  const barWidth = 210;
+  const barHeight = 22;
+  const x = width - barWidth - 28;
+  const y = 30;
+
+  noStroke();
+  fill(45, 20, 35, 220);
+  rect(x - 12, y - 23, barWidth + 24, 66, 10);
+  fill(255, 238, 245);
+  textAlign(LEFT, CENTER);
+  textSize(15);
+  text("HEALTH", x, y - 10);
+  fill(105, 65, 80);
+  rect(x, y + 4, barWidth, barHeight, 8);
+  fill(health > 30 ? "#D41445" : "#7A102B");
+  rect(x, y + 4, barWidth * (health / 100), barHeight, 8);
+  fill(255, 238, 245);
+  textAlign(CENTER, CENTER);
+  textSize(13);
+  text(`${health}%`, x + barWidth / 2, y + 15);
+}
+
+function drawKnockedOutMessage() {
+  noStroke();
+  fill(25, 5, 15, 210);
+  rect(0, 0, width, height);
+  fill(255, 238, 245);
+  textAlign(CENTER, CENTER);
+  textSize(38);
+  text("You've been knocked out!", width / 2, height / 2 - 35);
+  textSize(20);
+  text("The Queen's cakes were too dangerous.", width / 2, height / 2 + 12);
 }
 
 function mousePressed() {
-  if (!gameStarted || visionImpaired) return;
+  if (!gameStarted || knockedOut || transitionActive) return;
 
   const clickedCakeIndex = cakes.findIndex(
     (cake) =>
@@ -263,9 +358,26 @@ function mousePressed() {
       mouseY <= cake.y + cake.h
   );
 
+  if (clickedCakeIndex === -1) return;
+
+  const cake = cakes[clickedCakeIndex];
+  if (cake.bites >= cake.bitesNeeded) return;
+
+  cake.bites++;
+
   if (poisonedCakeIndices.has(clickedCakeIndex)) {
+    poisonBitesTaken++;
+    health = max(0, health - 20);
     visionImpaired = true;
+    if (health === 0) knockedOut = true;
   }
+
+  // Poison takes effect only when the cake has been completely eaten.
+  if (cake.bites < cake.bitesNeeded) return;
+  if (!poisonedCakeIndices.has(clickedCakeIndex)) return;
+
+  poisonedCakesEaten++;
+  if (poisonedCakesEaten >= 3) knockedOut = true;
 }
 
 function drawGlowingCake(cake, x, y, w, h, glowColor) {
