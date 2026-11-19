@@ -1,10 +1,16 @@
 let img;
+let img1;
 let cakes = [];
 let poisonedCakeIndices = new Set();
 let gameStarted = false;
 let visionImpaired = false;
 let startButton;
 let restartButton;
+let backButton;
+let transitionActive = false;
+let transitionStartedAt = 0;
+let transitionToTable = true;
+const transitionDuration = 850;
 
 const cakeComments = [
   "These cakes are deathly delicious.",
@@ -17,8 +23,13 @@ const cakeComments = [
 ];
 
 async function setup() {
+  document.body.style.margin = "0";
+  document.body.style.backgroundColor = "rgb(72, 32, 54)";
+  document.documentElement.style.backgroundColor = "rgb(72, 32, 54)";
+
   createCanvas(1500, windowHeight);
   img = await loadImage("assets/caketable.jpg");
+  img1 = await loadImage("assets/music.jpg");
 
   const cakeImages = [];
   for (let cakeNumber = 1; cakeNumber <= 14; cakeNumber++) {
@@ -54,9 +65,29 @@ async function setup() {
   startButton.style("cursor", "pointer");
   startButton.style("font-weight", "bold");
   startButton.mousePressed(() => {
-    gameStarted = true;
+    transitionActive = true;
+    transitionToTable = true;
+    transitionStartedAt = millis();
     startButton.hide();
   });
+
+  backButton = createButton("← Back to Welcome");
+  backButton.position(24, 24);
+  backButton.style("font-size", "18px");
+  backButton.style("background-color", "#FFB6C1");
+  backButton.style("border", "3px solid #FF69B4");
+  backButton.style("border-radius", "10px");
+  backButton.style("cursor", "pointer");
+  backButton.style("font-weight", "bold");
+  backButton.mousePressed(() => {
+    if (transitionActive) return;
+    transitionActive = true;
+    transitionToTable = false;
+    transitionStartedAt = millis();
+    backButton.hide();
+    restartButton.hide();
+  });
+  backButton.hide();
 
   restartButton = createButton("Try Again");
   restartButton.size(180, 52);
@@ -75,15 +106,59 @@ async function setup() {
 }
 
 function draw() {
-  if (gameStarted) {
+  if (transitionActive) {
+    drawRoomTransition();
+  } else if (gameStarted) {
     cakeTable();
   } else {
     welcome();
   }
 }
 
+function drawRoomTransition() {
+  const elapsed = millis() - transitionStartedAt;
+  const progress = constrain(elapsed / transitionDuration, 0, 1);
+  const easedProgress = progress * progress * (3 - 2 * progress);
+
+  if (transitionToTable) {
+    // Slide the welcome room left as the cake table enters from the right.
+    push();
+    translate(-easedProgress * width, 0);
+    welcome();
+    pop();
+
+    push();
+    translate((1 - easedProgress) * width, 0);
+    drawCakeTableScene();
+    pop();
+  } else {
+    // Reverse the same head-turn when returning to the welcome screen.
+    push();
+    translate(easedProgress * width, 0);
+    drawCakeTableScene();
+    pop();
+
+    push();
+    translate((easedProgress - 1) * width, 0);
+    welcome();
+    pop();
+  }
+
+  if (progress >= 1) {
+    transitionActive = false;
+    gameStarted = transitionToTable;
+    if (gameStarted) backButton.show();
+    else startButton.show();
+  }
+}
+
+function drawCakeTableScene() {
+  image(img, 0, 0, width, height);
+  cakes.forEach((cake) => image(cake.image, cake.x, cake.y, cake.w, cake.h));
+}
+
 function welcome() {
-  background(72, 32, 54);
+  image(img1, 0, 0, width, height);
   fill(255, 235, 241);
   textAlign(LEFT, CENTER);
   textSize(32);
@@ -94,6 +169,8 @@ function welcome() {
 
 function cakeTable() {
   image(img, 0, 0, width, height);
+  backButton.position(24, 24);
+  backButton.show();
   let hoveredCake = -1;
 
   cakes.forEach((cake, index) => {
