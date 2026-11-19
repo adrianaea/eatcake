@@ -1,5 +1,6 @@
 let img;
-let img1;
+let castleimg;
+let musicimg;
 let cakes = [];
 let poisonedCakeIndices = new Set();
 let gameStarted = false;
@@ -31,9 +32,10 @@ async function setup() {
   document.body.style.backgroundColor = "rgb(72, 32, 54)";
   document.documentElement.style.backgroundColor = "rgb(72, 32, 54)";
 
-  createCanvas(1500, windowHeight);
+  createCanvas(windowWidth, windowHeight);
   img = await loadImage("assets/caketable.jpg");
-  img1 = await loadImage("assets/music.jpg");
+  castleimg = await loadImage("assets/castle.jpg");
+  musicimg = await loadImage("assets/music.jpg");
 
   const cakeImages = [];
   for (let cakeNumber = 1; cakeNumber <= 14; cakeNumber++) {
@@ -186,7 +188,7 @@ function drawCakeTableScene() {
 }
 
 function welcome() {
-  image(img1, 0, 0, width, height);
+  image(castleimg, 0, 0, width, height);
   fill(255, 235, 241);
   textAlign(LEFT, CENTER);
   textSize(32);
