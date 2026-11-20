@@ -3,21 +3,30 @@ let castleimg;
 let musicimg;
 let cakes = [];
 let poisonedCakeIndices = new Set();
-let gameStarted = false;
+let currentRoom = "welcome";
 let visionImpaired = false;
 let poisonBitesTaken = 0;
 let poisonedCakesEaten = 0;
 let health = 100;
 let knockedOut = false;
 let startButton;
+let enterTableButton;
 let restartButton;
 let backButton;
 let transitionActive = false;
+let transitionPending = false;
 let transitionStartedAt = 0;
-let transitionToTable = true;
+let transitionFromRoom = "welcome";
+let transitionToRoom = "venue";
+let transitionDirection = 1;
 const transitionDuration = 850;
 const cakeLayoutReferenceWidth = 1366;
 const cakeLayoutReferenceHeight = 768;
+
+let enteranceMusic;
+let venueMusic;
+let cakeMusic;
+let eatingSound;
 
 const cakeComments = [
   "These cakes are deathly delicious.",
@@ -38,6 +47,14 @@ async function setup() {
   img = await loadImage("assets/caketable.jpg");
   castleimg = await loadImage("assets/castle1.jpg");
   musicimg = await loadImage("assets/music.jpg");
+
+  enteranceMusic = await loadSound("assets/enterance.mp3");
+  venueMusic = await loadSound("assets/music.m4a");
+  cakeMusic = await loadSound("assets/music+food.m4a");
+  eatingSound = await loadSound("assets/eating.wav");
+
+  enteranceMusic.loop();
+  enteranceMusic.play();
 
   const cakeImages = [];
   for (let cakeNumber = 1; cakeNumber <= 14; cakeNumber++) {
@@ -84,11 +101,15 @@ async function setup() {
   startButton.style("cursor", "pointer");
   startButton.style("font-weight", "bold");
   startButton.mousePressed(() => {
-    transitionActive = true;
-    transitionToTable = true;
-    transitionStartedAt = millis();
-    startButton.hide();
+    transitionTo("venue");
   });
+
+  enterTableButton = createButton("Explore the Cake Table →");
+  enterTableButton.position(50, height - 120);
+  enterTableButton.size(300, 58);
+  styleRoomButton(enterTableButton);
+  enterTableButton.mousePressed(() => transitionTo("cake"));
+  enterTableButton.hide();
 
   backButton = createButton("← Back to Welcome");
   backButton.position(24, 24);
@@ -99,12 +120,8 @@ async function setup() {
   backButton.style("cursor", "pointer");
   backButton.style("font-weight", "bold");
   backButton.mousePressed(() => {
-    if (transitionActive) return;
-    transitionActive = true;
-    transitionToTable = false;
-    transitionStartedAt = millis();
-    backButton.hide();
-    restartButton.hide();
+    if (currentRoom === "cake") transitionTo("venue");
+    else if (currentRoom === "venue") transitionTo("welcome");
   });
   backButton.hide();
 
@@ -132,6 +149,51 @@ async function setup() {
   restartButton.hide();
 }
 
+function styleRoomButton(button) {
+  button.style("font-size", "22px");
+  button.style("background-color", "#FFB6C1");
+  button.style("border", "3px solid #FF69B4");
+  button.style("border-radius", "10px");
+  button.style("cursor", "pointer");
+  button.style("font-weight", "bold");
+}
+
+async function transitionTo(room) {
+  if (transitionActive || transitionPending || room === currentRoom) return;
+
+  transitionFromRoom = currentRoom;
+  transitionToRoom = room;
+  const roomOrder = { welcome: 0, venue: 1, cake: 2 };
+  transitionDirection = roomOrder[room] > roomOrder[currentRoom] ? 1 : -1;
+  transitionPending = true;
+  startButton.hide();
+  enterTableButton.hide();
+  backButton.hide();
+  restartButton.hide();
+
+  // Resume Web Audio from the button click before starting a music track.
+  await userStartAudio();
+  transitionPending = false;
+  transitionActive = true;
+  transitionStartedAt = millis();
+
+  if (room === "welcome") {
+    venueMusic.stop();
+    cakeMusic.stop();
+    enteranceMusic.loop();
+    enteranceMusic.play();
+  } else if (room === "venue") {
+    enteranceMusic.stop();
+    cakeMusic.stop();
+    venueMusic.loop();
+    venueMusic.play();
+  } else if (room === "cake") {
+    venueMusic.stop();
+    cakeMusic.loop();
+    cakeMusic.play();
+  }
+}
+
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   updateCakeLayout();
@@ -152,10 +214,16 @@ function updateCakeLayout() {
 function draw() {
   if (transitionActive) {
     drawRoomTransition();
-  } else if (gameStarted) {
+  } else if (currentRoom === "cake") {
     cakeTable();
-  } else {
+  } else if (currentRoom === "welcome") {
     welcome();
+  } else {
+    venue();
+  }
+
+  if (visionImpaired) {
+    drawImpairedVision();
   }
 }
 
@@ -164,35 +232,51 @@ function drawRoomTransition() {
   const progress = constrain(elapsed / transitionDuration, 0, 1);
   const easedProgress = progress * progress * (3 - 2 * progress);
 
-  if (transitionToTable) {
-    // Slide the welcome room left as the cake table enters from the right.
-    push();
-    translate(-easedProgress * width, 0);
-    welcome();
-    pop();
+  // Move forward to the right, and reverse the slide when going back a room.
+  push();
+  translate(-transitionDirection * easedProgress * width, 0);
+  drawRoom(transitionFromRoom);
+  pop();
 
-    push();
-    translate((1 - easedProgress) * width, 0);
-    drawCakeTableScene();
-    pop();
-  } else {
-    // Reverse the same head-turn when returning to the welcome screen.
-    push();
-    translate(easedProgress * width, 0);
-    drawCakeTableScene();
-    pop();
-
-    push();
-    translate((easedProgress - 1) * width, 0);
-    welcome();
-    pop();
-  }
+  push();
+  translate(transitionDirection * (1 - easedProgress) * width, 0);
+  drawRoom(transitionToRoom);
+  pop();
 
   if (progress >= 1) {
     transitionActive = false;
-    gameStarted = transitionToTable;
-    if (gameStarted) backButton.show();
-    else startButton.show();
+    currentRoom = transitionToRoom;
+    updateRoomButtons();
+  }
+}
+
+function drawRoom(room) {
+  if (room === "welcome") welcome();
+  else if (room === "venue") venue();
+  else drawCakeTableScene();
+}
+
+function venue() {
+  image(musicimg, 0, 0, width, height);
+}
+
+function updateRoomButtons() {
+  startButton.hide();
+  enterTableButton.hide();
+  backButton.hide();
+
+  if (currentRoom === "welcome") {
+    startButton.show();
+  } else if (currentRoom === "venue") {
+    backButton.html("← Back to Welcome");
+    backButton.position(24, 24);
+    backButton.show();
+    enterTableButton.position(50, height - 120);
+    enterTableButton.show();
+  } else {
+    backButton.html("← Back to Music Room");
+    backButton.position(24, 24);
+    backButton.show();
   }
 }
 
@@ -268,10 +352,6 @@ function cakeTable() {
     if (cake.bites > 0) {
       drawBiteProgress(cake);
     }
-  }
-
-  if (visionImpaired) {
-    drawImpairedVision();
   }
 
   if (knockedOut) {
@@ -351,7 +431,7 @@ function drawImpairedVision() {
   textSize(24);
   if (!knockedOut) {
     text(
-      "Your vision swims… but you can still reach for another cake!",
+      "The poison clouds your vision…",
       width / 2,
       height - 45,
     );
@@ -394,7 +474,7 @@ function drawKnockedOutMessage() {
 }
 
 function mousePressed() {
-  if (!gameStarted || knockedOut || transitionActive) return;
+  if (currentRoom !== "cake" || knockedOut || transitionActive) return;
 
   const clickedCakeIndex = cakes.findIndex(
     (cake) =>
@@ -409,6 +489,7 @@ function mousePressed() {
   const cake = cakes[clickedCakeIndex];
   if (cake.bites >= cake.bitesNeeded) return;
 
+  eatingSound.play();
   cake.bites++;
 
   if (poisonedCakeIndices.has(clickedCakeIndex)) {
