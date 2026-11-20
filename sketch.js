@@ -16,6 +16,8 @@ let transitionActive = false;
 let transitionStartedAt = 0;
 let transitionToTable = true;
 const transitionDuration = 850;
+const cakeLayoutReferenceWidth = 1366;
+const cakeLayoutReferenceHeight = 768;
 
 const cakeComments = [
   "These cakes are deathly delicious.",
@@ -43,21 +45,28 @@ async function setup() {
   }
 
   cakes = [
-    { image: cakeImages[0], x: 165, y: 500, w: 100, h: 120 },
-    { image: cakeImages[1], x: 1210, y: 450, w: 120, h: 120 },
-    { image: cakeImages[2], x: 700, y: 600, w: 120, h: 100 },
-    { image: cakeImages[3], x: 910, y: 470, w: 120, h: 100 },
-    { image: cakeImages[4], x: 500, y: 600, w: 120, h: 100 },
-    { image: cakeImages[5], x: 820, y: 550, w: 120, h: 100 },
-    { image: cakeImages[6], x: 600, y: 540, w: 120, h: 100 },
-    { image: cakeImages[7], x: 400, y: 550, w: 120, h: 100 },
-    { image: cakeImages[8], x: 1000, y: 600, w: 120, h: 100 },
-    { image: cakeImages[9], x: 1100, y: 540, w: 120, h: 100 },
-    { image: cakeImages[10], x: 1200, y: 600, w: 120, h: 100 },
-    { image: cakeImages[11], x: 260, y: 600, w: 120, h: 100 },
-    { image: cakeImages[12], x: 380, y: 450, w: 120, h: 100 },
-    { image: cakeImages[13], x: 520, y: 420, w: 120, h: 100 },
+    { image: cakeImages[0], x: 90, y: 414, w: 82, h: 68 },
+    { image: cakeImages[1], x: 250, y: 400, w: 82, h: 68 },
+    { image: cakeImages[2], x: 410, y: 392, w: 82, h: 68 },
+    { image: cakeImages[3], x: 570, y: 390, w: 82, h: 68 },
+    { image: cakeImages[4], x: 730, y: 390, w: 82, h: 68 },
+    { image: cakeImages[5], x: 890, y: 392, w: 82, h: 68 },
+    { image: cakeImages[6], x: 1050, y: 400, w: 82, h: 68 },
+    { image: cakeImages[7], x: 1210, y: 414, w: 82, h: 68 },
+    { image: cakeImages[8], x: 150, y: 474, w: 88, h: 72 },
+    { image: cakeImages[9], x: 300, y: 466, w: 88, h: 72 },
+    { image: cakeImages[10], x: 465, y: 458, w: 88, h: 72 },
+    { image: cakeImages[11], x: 635, y: 454, w: 88, h: 72 },
+    { image: cakeImages[12], x: 805, y: 454, w: 88, h: 72 },
+    { image: cakeImages[13], x: 975, y: 458, w: 88, h: 72 },
   ];
+  cakes.forEach((cake) => {
+    cake.layoutX = cake.x;
+    cake.layoutY = cake.y;
+    cake.layoutW = cake.w;
+    cake.layoutH = cake.h;
+  });
+  updateCakeLayout();
   cakes.forEach((cake) => {
     cake.bites = 0;
     cake.bitesNeeded = floor(random(3, 6));
@@ -123,6 +132,23 @@ async function setup() {
   restartButton.hide();
 }
 
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  updateCakeLayout();
+}
+
+function updateCakeLayout() {
+  const scaleX = width / cakeLayoutReferenceWidth;
+  const scaleY = height / cakeLayoutReferenceHeight;
+
+  cakes.forEach((cake) => {
+    cake.x = cake.layoutX * scaleX;
+    cake.y = cake.layoutY * scaleY;
+    cake.w = cake.layoutW * scaleX;
+    cake.h = cake.layoutH * scaleY;
+  });
+}
+
 function draw() {
   if (transitionActive) {
     drawRoomTransition();
@@ -171,7 +197,7 @@ function drawRoomTransition() {
 }
 
 function drawCakeTableScene() {
-  image(img, 0, 0, width, height);
+  image(img, 0, 0, windowWidth, windowHeight);
   cakes.forEach((cake) => {
     if (cake.bites >= cake.bitesNeeded) return;
     const sizeFactor = 1 - cake.bites * 0.14;
@@ -198,7 +224,7 @@ function welcome() {
 }
 
 function cakeTable() {
-  image(img, 0, 0, width, height);
+  image(img, 0, 0, windowWidth, windowHeight);
   backButton.position(24, 24);
   backButton.show();
   let hoveredCake = -1;
