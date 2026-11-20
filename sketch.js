@@ -1,7 +1,9 @@
 let img;
 let castleimg;
 let musicimg;
+let medicineRoomImage;
 let cakes = [];
+let medicineItems = [];
 let poisonedCakeIndices = new Set();
 let currentRoom = "welcome";
 let visionImpaired = false;
@@ -11,6 +13,7 @@ let health = 100;
 let knockedOut = false;
 let startButton;
 let enterTableButton;
+let medicineButton;
 let restartButton;
 let backButton;
 let transitionActive = false;
@@ -47,6 +50,7 @@ async function setup() {
   img = await loadImage("assets/caketable.jpg");
   castleimg = await loadImage("assets/castle1.jpg");
   musicimg = await loadImage("assets/music.jpg");
+  medicineRoomImage = await loadImage("assets/room.jpg");
 
   enteranceMusic = await loadSound("assets/enterance.mp3");
   venueMusic = await loadSound("assets/music.m4a");
@@ -92,7 +96,7 @@ async function setup() {
   choosePoisonedCakes();
 
   startButton = createButton("Accept Invite");
-  startButton.position(50, height-300);
+  startButton.position(50, height-200);
   startButton.size(200, 60);
   startButton.style("font-size", "24px");
   startButton.style("background-color", "#FFB6C1");
@@ -111,6 +115,12 @@ async function setup() {
   enterTableButton.mousePressed(() => transitionTo("cake"));
   enterTableButton.hide();
 
+  medicineButton = createButton("Find medicine →");
+  medicineButton.position(24, 76);
+  styleRoomButton(medicineButton);
+  medicineButton.mousePressed(() => transitionTo("medicine"));
+  medicineButton.hide();
+
   backButton = createButton("← Back to Welcome");
   backButton.position(24, 24);
   backButton.style("font-size", "18px");
@@ -121,6 +131,7 @@ async function setup() {
   backButton.style("font-weight", "bold");
   backButton.mousePressed(() => {
     if (currentRoom === "cake") transitionTo("venue");
+    else if (currentRoom === "medicine") transitionTo("cake");
     else if (currentRoom === "venue") transitionTo("welcome");
   });
   backButton.hide();
@@ -139,6 +150,7 @@ async function setup() {
     poisonedCakesEaten = 0;
     health = 100;
     knockedOut = false;
+    medicineItems = [];
     cakes.forEach((cake) => {
       cake.bites = 0;
       cake.bitesNeeded = floor(random(3, 6));
@@ -163,11 +175,12 @@ async function transitionTo(room) {
 
   transitionFromRoom = currentRoom;
   transitionToRoom = room;
-  const roomOrder = { welcome: 0, venue: 1, cake: 2 };
+  const roomOrder = { welcome: 0, venue: 1, cake: 2, medicine: 3 };
   transitionDirection = roomOrder[room] > roomOrder[currentRoom] ? 1 : -1;
   transitionPending = true;
   startButton.hide();
   enterTableButton.hide();
+  medicineButton.hide();
   backButton.hide();
   restartButton.hide();
 
@@ -188,15 +201,23 @@ async function transitionTo(room) {
     venueMusic.loop();
     venueMusic.play();
   } else if (room === "cake") {
-    venueMusic.stop();
-    cakeMusic.loop();
-    cakeMusic.play();
+    if (transitionFromRoom !== "medicine") {
+      venueMusic.stop();
+      cakeMusic.loop();
+      cakeMusic.play();
+    }
+  } else if (room === "medicine" && medicineItems.length === 0) {
+    spawnMedicines();
   }
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   updateCakeLayout();
+  medicineItems.forEach((medicine) => {
+    medicine.x = medicine.xRatio * width;
+    medicine.y = medicine.yRatio * height;
+  });
 }
 
 function updateCakeLayout() {
@@ -218,12 +239,18 @@ function draw() {
     cakeTable();
   } else if (currentRoom === "welcome") {
     welcome();
+  } else if (currentRoom === "medicine") {
+    medicineRoom();
   } else {
     venue();
   }
 
   if (visionImpaired) {
     drawImpairedVision();
+  }
+
+  if (currentRoom === "medicine" && !transitionActive) {
+    drawHealthBar();
   }
 }
 
@@ -253,16 +280,72 @@ function drawRoomTransition() {
 function drawRoom(room) {
   if (room === "welcome") welcome();
   else if (room === "venue") venue();
+  else if (room === "medicine") medicineRoom();
   else drawCakeTableScene();
 }
 
 function venue() {
   image(musicimg, 0, 0, width, height);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  fill(255, 238, 245);
+  text("Welcome in! As you're enjoying the ambiance, ", width / 2, 58);
+  text("you can't help but notice how the upper class live their lives.", width / 2, 98);
+  text("A servant notices your pondering face, and warns you to be careful with the food here.", width / 2, 138);
+  text("There's a plot for revenge brewing.", width / 2, 178);
+}
+
+function medicineRoom() {
+  image(medicineRoomImage, 0, 0, width, height);
+
+  noStroke();
+  fill(35, 12, 25, 205);
+  rect(width / 2 - 280, 26, 560, 64, 12);
+  fill(255, 238, 245);
+  textAlign(CENTER, CENTER);
+  textSize(24);
+  text("Your vision is compromised. Find the medicine!", width / 2, 58);
+
+  medicineItems.forEach((medicine) => {
+    if (medicine.found) return;
+    drawingContext.save();
+    drawingContext.shadowColor = "rgba(255, 245, 140, 0.95)";
+    drawingContext.shadowBlur = 20;
+    textAlign(CENTER, CENTER);
+    textSize(48);
+    fill(255, 255, 255, 80);
+    text("💉", medicine.x, medicine.y);
+    drawingContext.restore();
+  });
+
+  if (medicineItems.length > 0 && medicineItems.every((medicine) => medicine.found)) {
+    fill(255, 238, 245);
+    textSize(22);
+    text("You found the medicine! Your strength is returning.", width / 2, height - 48);
+  } else {
+    const foundCount = medicineItems.filter((medicine) => medicine.found).length;
+  }
+}
+
+function spawnMedicines() {
+  medicineItems = [];
+  for (let i = 0; i < 3; i++) {
+    const xRatio = random(0.1, 0.9);
+    const yRatio = random(0.5, 0.84);
+    medicineItems.push({
+      x: xRatio * width,
+      y: yRatio * height,
+      xRatio,
+      yRatio,
+      found: false,
+    });
+  }
 }
 
 function updateRoomButtons() {
   startButton.hide();
   enterTableButton.hide();
+  medicineButton.hide();
   backButton.hide();
 
   if (currentRoom === "welcome") {
@@ -273,8 +356,12 @@ function updateRoomButtons() {
     backButton.show();
     enterTableButton.position(50, height - 120);
     enterTableButton.show();
-  } else {
+  } else if (currentRoom === "cake") {
     backButton.html("← Back to Music Room");
+    backButton.position(24, 24);
+    backButton.show();
+  } else {
+    backButton.html("← Back to Cake Table");
     backButton.position(24, 24);
     backButton.show();
   }
@@ -282,6 +369,9 @@ function updateRoomButtons() {
 
 function drawCakeTableScene() {
   image(img, 0, 0, windowWidth, windowHeight);
+
+  
+
   cakes.forEach((cake) => {
     if (cake.bites >= cake.bitesNeeded) return;
     const sizeFactor = 1 - cake.bites * 0.14;
@@ -305,12 +395,12 @@ function welcome() {
   drawingContext.save();
   drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
   drawingContext.shadowBlur = 14;
-  drawingContext.shadowOffsetX = 2;
+  drawingContext.shadowOffsetX = 3;
   drawingContext.shadowOffsetY = 2;
 
-  text("Welcome! You have been invited to the Queen's Ball!", 50, height - 200);
+  text("What's This? You have been invited to the Queen's Ball!", 50, height - 300);
   textSize(20);
-  text("Choose carefully… not every sweet treat is safe.", 50, height - 150);
+  text("You're famished and curious about what kind of treats there could be.", 50, height - 250);
 
   drawingContext.restore();
 }
@@ -319,6 +409,15 @@ function cakeTable() {
   image(img, 0, 0, windowWidth, windowHeight);
   backButton.position(24, 24);
   backButton.show();
+  if (
+    (poisonBitesTaken > 0 || health < 100) &&
+    (medicineItems.length === 0 || medicineItems.some((medicine) => !medicine.found))
+  ) {
+    medicineButton.position(24, 76);
+    medicineButton.show();
+  } else {
+    medicineButton.hide();
+  }
   let hoveredCake = -1;
 
   cakes.forEach((cake, index) => {
@@ -363,6 +462,29 @@ function cakeTable() {
   }
 
   drawHealthBar();
+  drawNarrativeText();
+}
+
+function drawNarrativeText() {
+  const narrativeX = 24;
+  const narrativeY = height - 100;
+  const narrativeWidth = width - 48;
+  
+  fill(255, 238, 245);
+  textAlign(LEFT, TOP);
+  textSize(20);
+  
+  drawingContext.save();
+  drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
+  drawingContext.shadowBlur = 8;
+  drawingContext.shadowOffsetX = 1;
+  drawingContext.shadowOffsetY = 1;
+  
+  const narrativeText = "Eat the unpoisoned cakes before the upper class does—it's your only chance to ensure the lower class gets their revenge. The poisoned ones are their only option now.";
+  
+  text(narrativeText, narrativeX, narrativeY, narrativeWidth, 100);
+  
+  drawingContext.restore();
 }
 
 function choosePoisonedCakes() {
@@ -474,7 +596,24 @@ function drawKnockedOutMessage() {
 }
 
 function mousePressed() {
-  if (currentRoom !== "cake" || knockedOut || transitionActive) return;
+  if (transitionActive) return;
+
+  if (currentRoom === "medicine") {
+    const clickedMedicine = medicineItems.find(
+      (medicine) => !medicine.found && dist(mouseX, mouseY, medicine.x, medicine.y) < 38,
+    );
+
+    if (!clickedMedicine) return;
+
+    clickedMedicine.found = true;
+    health = min(100, health + 35);
+    poisonBitesTaken = max(0, poisonBitesTaken - 2);
+    visionImpaired = poisonBitesTaken > 0;
+    if (health > 0) knockedOut = false;
+    return;
+  }
+
+  if (currentRoom !== "cake" || knockedOut) return;
 
   const clickedCakeIndex = cakes.findIndex(
     (cake) =>
