@@ -27,6 +27,7 @@ let medicineButton;
 let restartButton;
 let backButton;
 let transitionActive = false;
+let resetGameOnWelcome = false;
 let transitionStartedAt = 0;
 let transitionFromRoom = "welcome";
 let transitionToRoom = "venue";
@@ -147,17 +148,7 @@ async function setup() {
   restartButton.style("font-weight", "bold");
   restartButton.mousePressed(() => {
     visionImpaired = false;
-    poisonBitesTaken = 0;
-    poisonedCakesEaten = 0;
-    health = 100;
-    knockedOut = false;
-    gameWon = false;
-    medicineItems = [];
-    cakes.forEach((cake) => {
-      cake.bites = 0;
-      cake.bitesNeeded = floor(random(3, 6));
-    });
-    choosePoisonedCakes();
+    resetGameOnWelcome = true;
     transitionTo("welcome");
   });
   restartButton.hide();
@@ -332,6 +323,10 @@ function drawRoomTransition() {
   if (progress >= 1) {
     transitionActive = false;
     currentRoom = transitionToRoom;
+    if (currentRoom === "welcome" && resetGameOnWelcome) {
+      resetGameState();
+      resetGameOnWelcome = false;
+    }
     updateRoomButtons();
   }
 }
@@ -637,6 +632,22 @@ function choosePoisonedCakes() {
   while (poisonedCakeIndices.size < poisonedCakeCount) {
     poisonedCakeIndices.add(floor(random(cakes.length)));
   }
+}
+
+// --- Reset game state ---
+function resetGameState() {
+  visionImpaired = false;
+  poisonBitesTaken = 0;
+  poisonedCakesEaten = 0;
+  health = 100;
+  knockedOut = false;
+  gameWon = false;
+  medicineItems = [];
+  cakes.forEach((cake) => {
+    cake.bites = 0;
+    cake.bitesNeeded = floor(random(3, 6));
+  });
+  choosePoisonedCakes();
 }
 
 // --- Cake comments ---
