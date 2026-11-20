@@ -36,7 +36,7 @@ async function setup() {
 
   createCanvas(windowWidth, windowHeight);
   img = await loadImage("assets/caketable.jpg");
-  castleimg = await loadImage("assets/castle.jpg");
+  castleimg = await loadImage("assets/castle1.jpg");
   musicimg = await loadImage("assets/music.jpg");
 
   const cakeImages = [];
@@ -46,19 +46,19 @@ async function setup() {
 
   cakes = [
     { image: cakeImages[0], x: 90, y: 414, w: 82, h: 68 },
-    { image: cakeImages[1], x: 250, y: 400, w: 82, h: 68 },
-    { image: cakeImages[2], x: 410, y: 392, w: 82, h: 68 },
-    { image: cakeImages[3], x: 570, y: 390, w: 82, h: 68 },
-    { image: cakeImages[4], x: 730, y: 390, w: 82, h: 68 },
-    { image: cakeImages[5], x: 890, y: 392, w: 82, h: 68 },
-    { image: cakeImages[6], x: 1050, y: 400, w: 82, h: 68 },
-    { image: cakeImages[7], x: 1210, y: 414, w: 82, h: 68 },
-    { image: cakeImages[8], x: 150, y: 474, w: 88, h: 72 },
-    { image: cakeImages[9], x: 300, y: 466, w: 88, h: 72 },
-    { image: cakeImages[10], x: 465, y: 458, w: 88, h: 72 },
+    { image: cakeImages[1], x: 250, y: 360, w: 88, h: 68 },
+    { image: cakeImages[2], x: 400, y: 362, w: 82, h: 68 },
+    { image: cakeImages[3], x: 523, y: 345, w: 82, h: 68 },
+    { image: cakeImages[4], x: 740, y: 340, w: 82, h: 68 },
+    { image: cakeImages[5], x: 900, y: 370, w: 82, h: 68 },
+    { image: cakeImages[6], x: 1080, y: 375, w: 82, h: 68 },
+    { image: cakeImages[7], x: 1190, y: 430, w: 82, h: 68 },
+    { image: cakeImages[8], x: 180, y: 454, w: 88, h: 72 },
+    { image: cakeImages[9], x: 310, y: 454, w: 88, h: 72 },
+    { image: cakeImages[10], x: 465, y: 454, w: 88, h: 72 },
     { image: cakeImages[11], x: 635, y: 454, w: 88, h: 72 },
     { image: cakeImages[12], x: 805, y: 454, w: 88, h: 72 },
-    { image: cakeImages[13], x: 975, y: 458, w: 88, h: 72 },
+    { image: cakeImages[13], x: 975, y: 456, w: 90, h: 72 },
   ];
   cakes.forEach((cake) => {
     cake.layoutX = cake.x;
@@ -74,9 +74,9 @@ async function setup() {
 
   choosePoisonedCakes();
 
-  startButton = createButton("Let Them Eat Cake!");
-  startButton.position(50, 200);
-  startButton.size(300, 60);
+  startButton = createButton("Accept Invite");
+  startButton.position(50, height-300);
+  startButton.size(200, 60);
   startButton.style("font-size", "24px");
   startButton.style("background-color", "#FFB6C1");
   startButton.style("border", "3px solid #FF69B4");
@@ -208,19 +208,27 @@ function drawCakeTableScene() {
       cake.x + (cake.w - currentW) / 2,
       cake.y + cake.h - currentH,
       currentW,
-      currentH
+      currentH,
     );
   });
 }
 
 function welcome() {
   image(castleimg, 0, 0, width, height);
-  fill(255, 235, 241);
+  fill(255, 255, 241);
   textAlign(LEFT, CENTER);
   textSize(32);
-  text("Welcome! You have been invited to the Queen's Ball!", 50, 100);
+  drawingContext.save();
+  drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
+  drawingContext.shadowBlur = 14;
+  drawingContext.shadowOffsetX = 2;
+  drawingContext.shadowOffsetY = 2;
+
+  text("Welcome! You have been invited to the Queen's Ball!", 50, height - 200);
   textSize(20);
-  text("Choose carefully… not every sweet treat is safe.", 50, 150);
+  text("Choose carefully… not every sweet treat is safe.", 50, height - 150);
+
+  drawingContext.restore();
 }
 
 function cakeTable() {
@@ -319,15 +327,21 @@ function drawImpairedVision() {
 
   drawingContext.save();
   const gradient = drawingContext.createRadialGradient(
-    width / 2, 
+    width / 2,
     height / 2,
     min(width, height) * 0.08,
     width / 2,
     height / 2,
-    max(width, height) * 0.62
+    max(width, height) * 0.62,
   );
-  gradient.addColorStop(0, `rgba(10, 0, 12, ${map(impairment, 1, 6, 0.02, 0.28)})`);
-  gradient.addColorStop(1, `rgba(10, 0, 12, ${map(impairment, 1, 6, 0.25, 0.95)})`);
+  gradient.addColorStop(
+    0,
+    `rgba(10, 0, 12, ${map(impairment, 1, 6, 0.02, 0.28)})`,
+  );
+  gradient.addColorStop(
+    1,
+    `rgba(10, 0, 12, ${map(impairment, 1, 6, 0.25, 0.95)})`,
+  );
   drawingContext.fillStyle = gradient;
   drawingContext.fillRect(0, 0, width, height);
   drawingContext.restore();
@@ -336,7 +350,11 @@ function drawImpairedVision() {
   textAlign(CENTER, CENTER);
   textSize(24);
   if (!knockedOut) {
-    text("Your vision swims… but you can still reach for another cake!", width / 2, height - 45);
+    text(
+      "Your vision swims… but you can still reach for another cake!",
+      width / 2,
+      height - 45,
+    );
   }
 }
 
@@ -383,7 +401,7 @@ function mousePressed() {
       mouseX >= cake.x &&
       mouseX <= cake.x + cake.w &&
       mouseY >= cake.y &&
-      mouseY <= cake.y + cake.h
+      mouseY <= cake.y + cake.h,
   );
 
   if (clickedCakeIndex === -1) return;
