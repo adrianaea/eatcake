@@ -337,10 +337,17 @@ function venue() {
   textAlign(CENTER, CENTER);
   textSize(24);
   fill(255, 238, 245);
-  text("Welcome in! As you're enjoying the ambiance, ", width / 2, 58);
-  text("you can't help but notice how the upper class live their lives.", width / 2, 98);
-  text("A servant notices your pondering face, and warns you to be careful with the food here.", width / 2, 138);
-  text("There's a plot for revenge brewing.", width / 2, 178);
+  
+  const textBoxWidth = width - 140;
+  const textBoxX = (width - textBoxWidth) / 2;
+  drawingContext.save();
+  drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
+  drawingContext.shadowBlur = 8;
+  drawingContext.shadowOffsetX = 1;
+  drawingContext.shadowOffsetY = 1;
+  
+  text("Welcome in! As you're enjoying the ambiance, you can't help but notice how the upper class live their lives. A servant notices your pondering face, and warns you to be careful with the food here. There's a plot for revenge brewing.", textBoxX, 140, textBoxWidth, 100);
+  drawingContext.restore();
 }
 
 function medicineRoom() {
@@ -573,28 +580,19 @@ function cakeTable() {
   }
 
   drawHealthBar();
-  if (!knockedOut && !gameWon) drawNarrativeText();
-}
-
-function drawNarrativeText() {
-  const narrativeX = 24;
-  const narrativeY = height - 100;
-  const narrativeWidth = width - 48;
-  
-  fill(255, 238, 245);
+  if (!knockedOut && !gameWon) { 
+    fill(0, 0, 205);
   textAlign(LEFT, TOP);
-  textSize(20);
-  
+  textSize(22);
+
   drawingContext.save();
   drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
   drawingContext.shadowBlur = 8;
   drawingContext.shadowOffsetX = 1;
   drawingContext.shadowOffsetY = 1;
-  
-  const narrativeText = "Eat the unpoisoned cakes before the upper class does—it's your only chance to ensure the lower class gets their revenge. The poisoned ones are their only option now.";
-  
-  text(narrativeText, narrativeX, narrativeY, narrativeWidth, 100);
-  
+   const textBoxWidth = width - 140;
+  const textBoxX = (width - textBoxWidth) / 2;
+    text("Eat the unpoisoned cakes before the upper class does—it's your only chance to ensure the lower class gets their revenge. The poisoned ones are their only option now.", textBoxX, height-140, textBoxWidth, 100);}
   drawingContext.restore();
 }
 
