@@ -1,21 +1,13 @@
-// ========================================
-// GLOBAL VARIABLES
-// ========================================
-
-// Images
 let img;
 let castleimg;
 let musicimg;
 let medicineRoomImage;
-// --- Cake table and medicine items ---
 let cakes = [];
 let medicineItems = [];
 let poisonedCakeIndices = new Set();
 let currentRoom = "welcome";
 let gameWon = false;
 let knockedOut = false;
-
-// Invitation State
 let invitationOpened = false;
 let visionImpaired = false;
 let poisonBitesTaken = 0;
@@ -483,9 +475,9 @@ function drawInvitationPopup() {
   fill(255, 255, 241);
   textAlign(LEFT, CENTER);
   textSize(32);
-  text("What's This? You have been invited to the Queen's Ball!", 50, height - 300, width - 100);
+  text("What's This? You have been invited to the Queen's Ball!", 50, 100, width - 100);
   textSize(20);
-  text("You're famished and curious about what kind of treats there could be.", 50, height - 250, width - 100);
+  text("You're famished and curious about what kind of treats there could be.", 50, 180, width - 100);
 
 
   drawingContext.save();
