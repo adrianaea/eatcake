@@ -1,3 +1,8 @@
+// ========================================
+// GLOBAL VARIABLES
+// ========================================
+
+// Images
 let img;
 let castleimg;
 let musicimg;
@@ -6,14 +11,16 @@ let cakes = [];
 let medicineItems = [];
 let poisonedCakeIndices = new Set();
 let currentRoom = "welcome";
+let gameWon = false;
+let knockedOut = false;
+
+// Invitation State
 let invitationOpened = false;
 let invitationAudioReady = false;
 let visionImpaired = false;
 let poisonBitesTaken = 0;
 let poisonedCakesEaten = 0;
 let health = 100;
-let knockedOut = false;
-let gameWon = false;
 let startButton;
 let enterTableButton;
 let medicineButton;
@@ -151,6 +158,10 @@ async function setup() {
   restartButton.hide();
 }
 
+// ========================================
+// SETUP & INITIALIZATION
+// ========================================
+
 function styleRoomButton(button) {
   button.style("font-size", "22px");
   button.style("background-color", "#c49d5e");
@@ -226,6 +237,10 @@ async function transitionTo(room) {
   }
 }
 
+// ========================================
+// ROOM NAVIGATION & TRANSITIONS
+// ========================================
+
 function startRoomMusic(track) {
   try {
     const audioUnlock = userStartAudio();
@@ -277,6 +292,10 @@ function updateCakeLayout() {
   });
 }
 
+// ========================================
+// MAIN GAME LOOP
+// ========================================
+
 function draw() {
   if (transitionActive) {
     drawRoomTransition();
@@ -325,6 +344,10 @@ function drawRoomTransition() {
   }
 }
 
+// ========================================
+// ROOM RENDERING
+// ========================================
+
 function drawRoom(room) {
   if (room === "welcome") welcome();
   else if (room === "venue") venue();
@@ -350,16 +373,22 @@ function venue() {
   drawingContext.restore();
 }
 
+// --- MEDICINE ROOM ---
+
 function medicineRoom() {
   image(medicineRoomImage, 0, 0, width, height);
 
   noStroke();
   fill(35, 12, 25, 205);
-  rect(width / 2 - 280, 26, 560, 64, 12);
+  
+  const headerWidth = 360;
+  const headerX = (width - headerWidth) / 2;
+  
+  rect(headerX, 70, headerWidth, 60, 12);
   fill(255, 238, 245);
   textAlign(CENTER, CENTER);
   textSize(24);
-  text("Your vision is compromised. Find the medicine!", width / 2, 58);
+  text("Find the medicine!", width / 2, 100);
 
   medicineItems.forEach((medicine) => {
     if (medicine.found) return;
@@ -423,6 +452,8 @@ function updateRoomButtons() {
   }
 }
 
+// --- CAKE TABLE ROOM ---
+
 function drawCakeTableScene() {
   image(img, 0, 0, windowWidth, windowHeight);
 
@@ -445,7 +476,7 @@ function drawCakeTableScene() {
 
 function welcome() {
   image(castleimg, 0, 0, width, height);
-
+  drawingContext.save();
   drawingContext.restore();
   drawInvitationPopup();
 }
@@ -461,9 +492,9 @@ function drawInvitationPopup() {
   fill(255, 255, 241);
   textAlign(LEFT, CENTER);
   textSize(32);
-  text("What's This? You have been invited to the Queen's Ball!", 50, height - 300);
+  text("What's This? You have been invited to the Queen's Ball!", 50, height - 300, width - 100);
   textSize(20);
-  text("You're famished and curious about what kind of treats there could be.", 50, height - 250);
+  text("You're famished and curious about what kind of treats there could be.", 50, height - 250, width - 100);
 
 
   drawingContext.save();
@@ -517,6 +548,10 @@ function drawInvitationPopup() {
   fill(130, 73, 51);
 }
 
+// ========================================
+// GAME LOGIC & INTERACTIONS
+// ========================================
+
 function cakeTable() {
   image(img, 0, 0, windowWidth, windowHeight);
   backButton.position(24, 24);
@@ -567,12 +602,12 @@ function cakeTable() {
 
   if (knockedOut) {
     drawKnockedOutMessage();
-    restartButton.position((width - 180) / 2, height - 100);
+    restartButton.position((width - 180) / 2, height - 300);
     restartButton.html("Try Again");
     restartButton.show();
   } else if (gameWon) {
     drawVictoryPopup();
-    restartButton.position((width - 180) / 2, height - 100);
+    restartButton.position((width - 180) / 2, height - 300);
     restartButton.html("Play Again");
     restartButton.show();
   } else {
@@ -725,6 +760,10 @@ function drawVictoryPopup() {
   text("The upper class takes the bait—the lower class gets their revenge!", width / 2, height / 2 + 30);
 }
 
+// ========================================
+// INPUT HANDLING
+// ========================================
+
 function mousePressed() {
   if (transitionActive) return;
 
@@ -792,6 +831,10 @@ function mousePressed() {
   );
   if (!knockedOut && allSafeCakesConsumed) gameWon = true;
 }
+
+// ========================================
+// UTILITY FUNCTIONS
+// ========================================
 
 function drawGlowingCake(cake, x, y, w, h, glowColor) {
   drawingContext.save();
