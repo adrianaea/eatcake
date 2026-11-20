@@ -96,7 +96,6 @@ async function setup() {
   choosePoisonedCakes();
 
   startButton = createButton("Accept Invite");
-  startButton.position(50, height-200);
   startButton.size(200, 60);
   startButton.style("font-size", "24px");
   startButton.style("background-color", "#FFB6C1");
@@ -118,20 +117,17 @@ async function setup() {
   openInvitationButton.elt.addEventListener("click", openInvitation);
 
   enterTableButton = createButton("Explore the Cake Table →");
-  enterTableButton.position(50, height - 120);
   enterTableButton.size(300, 58);
   styleRoomButton(enterTableButton);
   enterTableButton.mousePressed(() => transitionTo("cake"));
   enterTableButton.hide();
 
   medicineButton = createButton("Find medicine →");
-  medicineButton.position(24, 76);
   styleRoomButton(medicineButton);
   medicineButton.mousePressed(() => transitionTo("medicine"));
   medicineButton.hide();
 
   backButton = createButton("← Back to Welcome");
-  backButton.position(24, 24);
   backButton.style("font-size", "18px");
   backButton.style("background-color", "#FFB6C1");
   backButton.style("border", "3px solid #FF69B4");
@@ -207,7 +203,6 @@ function openInvitation() {
   try {
     const audioUnlock = userStartAudio();
     enteranceMusic.loop();
-    enteranceMusic.play();
     invitationAudioReady = true;
     if (audioUnlock && typeof audioUnlock.catch === "function") {
       audioUnlock.catch((error) => console.warn("Audio could not start:", error));
@@ -249,17 +244,14 @@ async function transitionTo(room) {
     venueMusic.stop();
     cakeMusic.stop();
     enteranceMusic.loop();
-    enteranceMusic.play();
   } else if (room === "venue") {
     enteranceMusic.stop();
     cakeMusic.stop();
     venueMusic.loop();
-    venueMusic.play();
   } else if (room === "cake") {
     if (transitionFromRoom !== "medicine") {
       venueMusic.stop();
       cakeMusic.loop();
-      cakeMusic.play();
     }
   } else if (room === "medicine" && medicineItems.length === 0) {
     spawnMedicines();
@@ -379,8 +371,6 @@ function medicineRoom() {
     fill(255, 238, 245);
     textSize(22);
     text("You found the medicine! Your strength is returning.", width / 2, height - 48);
-  } else {
-    const foundCount = medicineItems.filter((medicine) => medicine.found).length;
   }
 }
 
