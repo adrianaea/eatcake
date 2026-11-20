@@ -6,12 +6,15 @@ let cakes = [];
 let medicineItems = [];
 let poisonedCakeIndices = new Set();
 let currentRoom = "welcome";
+let invitationOpened = false;
+let invitationAudioReady = false;
 let visionImpaired = false;
 let poisonBitesTaken = 0;
 let poisonedCakesEaten = 0;
 let health = 100;
 let knockedOut = false;
 let startButton;
+let openInvitationButton;
 let enterTableButton;
 let medicineButton;
 let restartButton;
@@ -57,9 +60,6 @@ async function setup() {
   cakeMusic = await loadSound("assets/music+food.m4a");
   eatingSound = await loadSound("assets/eating.wav");
 
-  enteranceMusic.loop();
-  enteranceMusic.play();
-
   const cakeImages = [];
   for (let cakeNumber = 1; cakeNumber <= 14; cakeNumber++) {
     cakeImages.push(await loadImage(`assets/cake${cakeNumber}.png`));
@@ -104,9 +104,18 @@ async function setup() {
   startButton.style("border-radius", "10px");
   startButton.style("cursor", "pointer");
   startButton.style("font-weight", "bold");
+  startButton.style("z-index", "10");
   startButton.mousePressed(() => {
     transitionTo("venue");
   });
+  startButton.hide();
+
+  openInvitationButton = createButton("Open Invitation");
+  styleRoomButton(openInvitationButton);
+  openInvitationButton.size(220, 48);
+  openInvitationButton.style("z-index", "10");
+  positionOpenInvitationButton();
+  openInvitationButton.elt.addEventListener("click", openInvitation);
 
   enterTableButton = createButton("Explore the Cake Table →");
   enterTableButton.position(50, height - 120);
@@ -170,6 +179,49 @@ function styleRoomButton(button) {
   button.style("font-weight", "bold");
 }
 
+function getInvitationBounds() {
+  const cardWidth = min(width - 40, 520);
+  const cardHeight = 300;
+  return {
+    x: (width - cardWidth) / 2,
+    y: (height - cardHeight) / 2,
+    w: cardWidth,
+    h: cardHeight,
+  };
+}
+
+function positionOpenInvitationButton() {
+  const card = getInvitationBounds();
+  openInvitationButton.position((width - 220) / 2, card.y + card.h - 62);
+}
+
+function openInvitation() {
+  if (invitationOpened || currentRoom !== "welcome") return;
+  invitationOpened = true;
+  openInvitationButton.hide();
+  cursor(ARROW);
+
+  // Start audio directly in this click handler so the browser accepts playback.
+  positionAcceptButton();
+  startButton.show();
+  try {
+    const audioUnlock = userStartAudio();
+    enteranceMusic.loop();
+    enteranceMusic.play();
+    invitationAudioReady = true;
+    if (audioUnlock && typeof audioUnlock.catch === "function") {
+      audioUnlock.catch((error) => console.warn("Audio could not start:", error));
+    }
+  } catch (error) {
+    console.warn("Audio could not start:", error);
+  }
+}
+
+function positionAcceptButton() {
+  const card = getInvitationBounds();
+  startButton.position((width - 200) / 2, card.y + card.h - 66);
+}
+
 async function transitionTo(room) {
   if (transitionActive || transitionPending || room === currentRoom) return;
 
@@ -179,6 +231,7 @@ async function transitionTo(room) {
   transitionDirection = roomOrder[room] > roomOrder[currentRoom] ? 1 : -1;
   transitionPending = true;
   startButton.hide();
+  openInvitationButton.hide();
   enterTableButton.hide();
   medicineButton.hide();
   backButton.hide();
@@ -191,6 +244,8 @@ async function transitionTo(room) {
   transitionStartedAt = millis();
 
   if (room === "welcome") {
+    invitationOpened = false;
+    invitationAudioReady = false;
     venueMusic.stop();
     cakeMusic.stop();
     enteranceMusic.loop();
@@ -214,6 +269,8 @@ async function transitionTo(room) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   updateCakeLayout();
+  if (!invitationOpened && currentRoom === "welcome") positionOpenInvitationButton();
+  if (invitationAudioReady && currentRoom === "welcome") positionAcceptButton();
   medicineItems.forEach((medicine) => {
     medicine.x = medicine.xRatio * width;
     medicine.y = medicine.yRatio * height;
@@ -344,12 +401,19 @@ function spawnMedicines() {
 
 function updateRoomButtons() {
   startButton.hide();
+  openInvitationButton.hide();
   enterTableButton.hide();
   medicineButton.hide();
   backButton.hide();
 
   if (currentRoom === "welcome") {
-    startButton.show();
+    if (invitationOpened) {
+      positionAcceptButton();
+      startButton.show();
+    } else {
+      positionOpenInvitationButton();
+      openInvitationButton.show();
+    }
   } else if (currentRoom === "venue") {
     backButton.html("← Back to Welcome");
     backButton.position(24, 24);
@@ -403,6 +467,71 @@ function welcome() {
   text("You're famished and curious about what kind of treats there could be.", 50, height - 250);
 
   drawingContext.restore();
+  drawInvitationPopup();
+}
+
+function drawInvitationPopup() {
+  const card = getInvitationBounds();
+
+  noStroke();
+  fill(20, 8, 18, 125);
+  rect(0, 0, width, height);
+
+  drawingContext.save();
+  drawingContext.shadowColor = "rgba(0, 0, 0, 0.65)";
+  drawingContext.shadowBlur = 24;
+  fill(246, 228, 190);
+  rect(card.x, card.y, card.w, card.h, 18);
+  drawingContext.restore();
+
+  noFill();
+  stroke(161, 112, 49);
+  strokeWeight(3);
+  rect(card.x + 12, card.y + 12, card.w - 24, card.h - 24, 12);
+  noStroke();
+  textAlign(CENTER, CENTER);
+
+  if (!invitationOpened) {
+    fill(83, 43, 48);
+    textSize(30);
+    text("A Royal Invitation", width / 2, card.y + 64);
+    textSize(19);
+    text("Sealed with the Queen's crest", width / 2, card.y + 105);
+    textSize(58);
+    text("✉", width / 2, card.y + 180);
+    fill(130, 73, 51);
+    textSize(16);
+    text("Click below to open and read your invitation", width / 2, card.y + 215);
+
+    if (
+      mouseX >= card.x &&
+      mouseX <= card.x + card.w &&
+      mouseY >= card.y &&
+      mouseY <= card.y + card.h
+    ) {
+      cursor(HAND);
+    } else {
+      cursor(ARROW);
+    }
+    return;
+  }
+
+  fill(83, 43, 48);
+  textSize(17);
+  text("HER MAJESTY THE QUEEN", width / 2, card.y + 52);
+  fill(69, 37, 43);
+  textSize(29);
+  text("requests the pleasure", width / 2, card.y + 101);
+  text("of your company at the Royal Ball", width / 2, card.y + 139);
+  textSize(16);
+  text("An evening of music, mystery, and cake awaits.", width / 2, card.y + 188);
+  fill(130, 73, 51);
+  textSize(15);
+  text(
+    invitationAudioReady ? "The entrance music is playing" : "Your invitation is open",
+    width / 2,
+      card.y + 215,
+  );
 }
 
 function cakeTable() {
@@ -597,6 +726,19 @@ function drawKnockedOutMessage() {
 
 function mousePressed() {
   if (transitionActive) return;
+
+  if (currentRoom === "welcome" && !invitationOpened) {
+    const card = getInvitationBounds();
+    if (
+      mouseX >= card.x &&
+      mouseX <= card.x + card.w &&
+      mouseY >= card.y &&
+      mouseY <= card.y + card.h
+    ) {
+      openInvitation();
+    }
+    return;
+  }
 
   if (currentRoom === "medicine") {
     const clickedMedicine = medicineItems.find(
