@@ -16,7 +16,6 @@ let knockedOut = false;
 
 // Invitation State
 let invitationOpened = false;
-let invitationAudioReady = false;
 let visionImpaired = false;
 let poisonBitesTaken = 0;
 let poisonedCakesEaten = 0;
@@ -27,7 +26,6 @@ let medicineButton;
 let restartButton;
 let backButton;
 let transitionActive = false;
-let transitionPending = false;
 let transitionStartedAt = 0;
 let transitionFromRoom = "welcome";
 let transitionToRoom = "venue";
@@ -191,7 +189,6 @@ function openInvitation() {
   positionAcceptButton();
   startButton.show();
   startRoomMusic(enteranceMusic);
-  invitationAudioReady = !enteranceMusic.paused;
 }
 
 function positionAcceptButton() {
@@ -199,42 +196,32 @@ function positionAcceptButton() {
   startButton.position((width - 200) / 2, card.y + card.h - 66);
 }
 
-async function transitionTo(room) {
-  if (transitionActive || transitionPending || room === currentRoom) return;
+function transitionTo(room) {
+  if (transitionActive || room === currentRoom) return;
 
   transitionFromRoom = currentRoom;
   transitionToRoom = room;
   const roomOrder = { welcome: 0, venue: 1, cake: 2, medicine: 3 };
   transitionDirection = roomOrder[room] > roomOrder[currentRoom] ? 1 : -1;
-  transitionPending = true;
   startButton.hide();
   enterTableButton.hide();
   medicineButton.hide();
   backButton.hide();
   restartButton.hide();
 
-  if (room === "welcome") startRoomMusic(enteranceMusic);
-  else if (room === "venue") startRoomMusic(venueMusic);
-  else if (room === "cake" && transitionFromRoom !== "medicine") {
-    startRoomMusic(cakeMusic);
-  }
-
   if (room === "welcome") {
+    startRoomMusic(enteranceMusic);
     invitationOpened = false;
-    invitationAudioReady = !enteranceMusic.paused;
-  }
-
-  transitionPending = false;
-  transitionActive = true;
-  transitionStartedAt = millis();
-
-  if (room === "venue") {
-    // startRoomMusic already switched to venue music.
-  } else if (room === "cake") {
-    // Keep cake music playing when returning from the medicine room.
+  } else if (room === "venue") {
+    startRoomMusic(venueMusic);
+  } else if (room === "cake" && transitionFromRoom !== "medicine") {
+    startRoomMusic(cakeMusic);
   } else if (room === "medicine" && medicineItems.length === 0) {
     spawnMedicines();
   }
+
+  transitionActive = true;
+  transitionStartedAt = millis();
 }
 
 // ========================================
@@ -243,11 +230,6 @@ async function transitionTo(room) {
 
 function startRoomMusic(track) {
   try {
-    const audioUnlock = userStartAudio();
-    if (audioUnlock && typeof audioUnlock.catch === "function") {
-      audioUnlock.catch((error) => console.warn("Audio could not start:", error));
-    }
-
     [enteranceMusic, venueMusic, cakeMusic].forEach((music) => {
       if (music && music !== track && !music.paused) {
         music.pause();
@@ -273,7 +255,7 @@ function startRoomMusic(track) {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   updateCakeLayout();
-  if (invitationAudioReady && currentRoom === "welcome") positionAcceptButton();
+  if (invitationOpened && currentRoom === "welcome") positionAcceptButton();
   medicineItems.forEach((medicine) => {
     medicine.x = medicine.xRatio * width;
     medicine.y = medicine.yRatio * height;
@@ -337,9 +319,6 @@ function drawRoomTransition() {
   if (progress >= 1) {
     transitionActive = false;
     currentRoom = transitionToRoom;
-    if (currentRoom === "welcome") {
-      invitationAudioReady = !enteranceMusic.paused;
-    }
     updateRoomButtons();
   }
 }
@@ -457,21 +436,23 @@ function updateRoomButtons() {
 function drawCakeTableScene() {
   image(img, 0, 0, windowWidth, windowHeight);
 
-  
-
   cakes.forEach((cake) => {
     if (cake.bites >= cake.bitesNeeded) return;
-    const sizeFactor = 1 - cake.bites * 0.14;
-    const currentW = cake.w * sizeFactor;
-    const currentH = cake.h * sizeFactor;
-    image(
-      cake.image,
-      cake.x + (cake.w - currentW) / 2,
-      cake.y + cake.h - currentH,
-      currentW,
-      currentH,
-    );
+    const bounds = getCakeDrawBounds(cake);
+    image(cake.image, bounds.x, bounds.y, bounds.w, bounds.h);
   });
+}
+
+function getCakeDrawBounds(cake) {
+  const sizeFactor = 1 - cake.bites * 0.14;
+  const w = cake.w * sizeFactor;
+  const h = cake.h * sizeFactor;
+  return {
+    x: cake.x + (cake.w - w) / 2,
+    y: cake.y + cake.h - h,
+    w,
+    h,
+  };
 }
 
 function welcome() {
@@ -570,11 +551,7 @@ function cakeTable() {
   cakes.forEach((cake, index) => {
     if (cake.bites >= cake.bitesNeeded) return;
 
-    const sizeFactor = 1 - cake.bites * 0.14;
-    const currentW = cake.w * sizeFactor;
-    const currentH = cake.h * sizeFactor;
-    const drawX = cake.x + (cake.w - currentW) / 2;
-    const drawY = cake.y + cake.h - currentH;
+    const bounds = getCakeDrawBounds(cake);
 
     const hovered =
       mouseX >= cake.x &&
@@ -589,7 +566,7 @@ function cakeTable() {
         ? "rgba(145, 5, 26, 0.95)"
         : "rgba(255, 149, 230, 0.95)"
       : "rgba(4, 4, 4, 0.99)";
-    drawGlowingCake(cake.image, drawX, drawY, currentW, currentH, glowColor);
+    drawGlowingCake(cake.image, bounds.x, bounds.y, bounds.w, bounds.h, glowColor);
   });
 
   if (hoveredCake !== -1) {
@@ -615,20 +592,28 @@ function cakeTable() {
   }
 
   drawHealthBar();
-  if (!knockedOut && !gameWon) { 
+  if (!knockedOut && !gameWon) {
     fill(0, 0, 205);
-  textAlign(LEFT, TOP);
-  textSize(22);
+    textAlign(LEFT, TOP);
+    textSize(22);
 
-  drawingContext.save();
-  drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
-  drawingContext.shadowBlur = 8;
-  drawingContext.shadowOffsetX = 1;
-  drawingContext.shadowOffsetY = 1;
-   const textBoxWidth = width - 140;
-  const textBoxX = (width - textBoxWidth) / 2;
-    text("Eat the unpoisoned cakes before the upper class does—it's your only chance to ensure the lower class gets their revenge. The poisoned ones are their only option now.", textBoxX, height-140, textBoxWidth, 100);}
-  drawingContext.restore();
+    drawingContext.save();
+    drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
+    drawingContext.shadowBlur = 8;
+    drawingContext.shadowOffsetX = 1;
+    drawingContext.shadowOffsetY = 1;
+
+    const textBoxWidth = width - 140;
+    const textBoxX = (width - textBoxWidth) / 2;
+    text(
+      "Eat the unpoisoned cakes before the upper class does—it's your only chance to ensure the lower class gets their revenge. The poisoned ones will be their only option.",
+      textBoxX,
+      height - 140,
+      textBoxWidth,
+      100,
+    );
+    drawingContext.restore();
+  }
 }
 
 function choosePoisonedCakes() {
