@@ -7,6 +7,7 @@ let img;
 let castleimg;
 let musicimg;
 let medicineRoomImage;
+// --- Cake table and medicine items ---
 let cakes = [];
 let medicineItems = [];
 let poisonedCakeIndices = new Set();
@@ -34,11 +35,13 @@ const transitionDuration = 850;
 const cakeLayoutReferenceWidth = 1366;
 const cakeLayoutReferenceHeight = 768;
 
+// --- Music & sound effects ---
 let enteranceMusic;
 let venueMusic;
 let cakeMusic;
 let eatingSound;
 
+// cake comments for when inspecting cakes
 const cakeComments = [
   "These cakes are deathly delicious.",
   "That cake will take you to heaven.",
@@ -49,6 +52,9 @@ const cakeComments = [
   "The Queen's baker has outdone themself.",
 ];
 
+// ========================================
+// SETUP & INITIALIZATION
+// ========================================
 async function setup() {
   document.body.style.margin = "0";
   document.body.style.backgroundColor = "rgb(72, 32, 54)";
@@ -71,6 +77,7 @@ async function setup() {
     cakeImages.push(await loadImage(`assets/cake${cakeNumber}.png`));
   }
 
+  // --- Initialize cakes ---
   cakes = [
     { image: cakeImages[0], x: 90, y: 414, w: 82, h: 68 },
     { image: cakeImages[1], x: 250, y: 360, w: 88, h: 68 },
@@ -151,15 +158,14 @@ async function setup() {
       cake.bitesNeeded = floor(random(3, 6));
     });
     choosePoisonedCakes();
-    restartButton.hide();
+    transitionTo("welcome");
   });
   restartButton.hide();
 }
 
 // ========================================
-// SETUP & INITIALIZATION
+// UI & INVITATION HELP
 // ========================================
-
 function styleRoomButton(button) {
   button.style("font-size", "22px");
   button.style("background-color", "#c49d5e");
@@ -169,6 +175,7 @@ function styleRoomButton(button) {
   button.style("font-weight", "bold");
 }
 
+// --- Invitation bounds ---
 function getInvitationBounds() {
   const cardWidth = min(width - 40, 520);
   const cardHeight = 300;
@@ -180,6 +187,7 @@ function getInvitationBounds() {
   };
 }
 
+// --- Open invitation ---
 function openInvitation() {
   if (invitationOpened || currentRoom !== "welcome") return;
   invitationOpened = true;
@@ -191,11 +199,15 @@ function openInvitation() {
   startRoomMusic(enteranceMusic);
 }
 
+// --- Position accept button ---
 function positionAcceptButton() {
   const card = getInvitationBounds();
   startButton.position((width - 200) / 2, card.y + card.h - 66);
 }
 
+// ========================================
+// ROOM NAVIGATION & AUDIO
+// ========================================
 function transitionTo(room) {
   if (transitionActive || room === currentRoom) return;
 
@@ -224,10 +236,7 @@ function transitionTo(room) {
   transitionStartedAt = millis();
 }
 
-// ========================================
-// ROOM NAVIGATION & TRANSITIONS
-// ========================================
-
+// --- Start room music ---
 function startRoomMusic(track) {
   try {
     [enteranceMusic, venueMusic, cakeMusic].forEach((music) => {
@@ -252,6 +261,9 @@ function startRoomMusic(track) {
   }
 }
 
+// ========================================
+// RESIZING & RESPONSIVE LAYOUT
+// ========================================
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   updateCakeLayout();
@@ -262,6 +274,7 @@ function windowResized() {
   });
 }
 
+// --- Cake layout ---
 function updateCakeLayout() {
   const scaleX = width / cakeLayoutReferenceWidth;
   const scaleY = height / cakeLayoutReferenceHeight;
@@ -275,9 +288,8 @@ function updateCakeLayout() {
 }
 
 // ========================================
-// MAIN GAME LOOP
+// DRAW LOOP & TRANSITIONS
 // ========================================
-
 function draw() {
   if (transitionActive) {
     drawRoomTransition();
@@ -300,6 +312,7 @@ function draw() {
   }
 }
 
+// --- Room transition ---
 function drawRoomTransition() {
   const elapsed = millis() - transitionStartedAt;
   const progress = constrain(elapsed / transitionDuration, 0, 1);
@@ -326,7 +339,6 @@ function drawRoomTransition() {
 // ========================================
 // ROOM RENDERING
 // ========================================
-
 function drawRoom(room) {
   if (room === "welcome") welcome();
   else if (room === "venue") venue();
@@ -334,6 +346,7 @@ function drawRoom(room) {
   else drawCakeTableScene();
 }
 
+// --- Music room ---
 function venue() {
   image(musicimg, 0, 0, width, height);
   textAlign(CENTER, CENTER);
@@ -352,8 +365,7 @@ function venue() {
   drawingContext.restore();
 }
 
-// --- MEDICINE ROOM ---
-
+// --- Medicine room ---
 function medicineRoom() {
   image(medicineRoomImage, 0, 0, width, height);
 
@@ -388,6 +400,7 @@ function medicineRoom() {
   }
 }
 
+// --- Spawn medicines ---
 function spawnMedicines() {
   medicineItems = [];
   for (let i = 0; i < 3; i++) {
@@ -403,6 +416,7 @@ function spawnMedicines() {
   }
 }
 
+// --- Update room buttons ---
 function updateRoomButtons() {
   startButton.hide();
   enterTableButton.hide();
@@ -431,8 +445,7 @@ function updateRoomButtons() {
   }
 }
 
-// --- CAKE TABLE ROOM ---
-
+// --- Cake table room ---
 function drawCakeTableScene() {
   image(img, 0, 0, windowWidth, windowHeight);
 
@@ -455,6 +468,7 @@ function getCakeDrawBounds(cake) {
   };
 }
 
+// --- Welcome room ---
 function welcome() {
   image(castleimg, 0, 0, width, height);
   drawingContext.save();
@@ -462,6 +476,7 @@ function welcome() {
   drawInvitationPopup();
 }
 
+// --- Invitation popup ---
 function drawInvitationPopup() {
   const card = getInvitationBounds();
 
@@ -530,9 +545,8 @@ function drawInvitationPopup() {
 }
 
 // ========================================
-// GAME LOGIC & INTERACTIONS
+// CAKE TABLE & GAME STATE DISPLAY
 // ========================================
-
 function cakeTable() {
   image(img, 0, 0, windowWidth, windowHeight);
   backButton.position(24, 24);
@@ -616,6 +630,7 @@ function cakeTable() {
   }
 }
 
+// --- Poisoned cakes ---
 function choosePoisonedCakes() {
   poisonedCakeIndices.clear();
   const poisonedCakeCount = floor(random(3, 6));
@@ -624,6 +639,7 @@ function choosePoisonedCakes() {
   }
 }
 
+// --- Cake comments ---
 function drawCakeComment(comment) {
   const boxWidth = min(width - 40, 640);
   const boxX = (width - boxWidth) / 2;
@@ -638,6 +654,7 @@ function drawCakeComment(comment) {
   text(comment, width / 2, boxY + 29);
 }
 
+// --- Bite progress ---
 function drawBiteProgress(cake) {
   noStroke();
   fill(35, 12, 25, 210);
@@ -648,6 +665,7 @@ function drawBiteProgress(cake) {
   text(`Bites: ${cake.bites} / ${cake.bitesNeeded}`, width / 2, 106);
 }
 
+// --- Impaired vision ---
 function drawImpairedVision() {
   // Each poisoned bite deepens the vignette and makes the room harder to see.
   const impairment = min(poisonBitesTaken, 6);
@@ -689,6 +707,7 @@ function drawImpairedVision() {
   }
 }
 
+// --- Health bar ---
 function drawHealthBar() {
   const barWidth = 210;
   const barHeight = 22;
@@ -712,6 +731,7 @@ function drawHealthBar() {
   text(`${health}%`, x + barWidth / 2, y + 15);
 }
 
+// --- Knocked out message ---
 function drawKnockedOutMessage() {
   noStroke();
   fill(25, 5, 15, 210);
@@ -724,6 +744,7 @@ function drawKnockedOutMessage() {
   text("The Queen's cakes were too dangerous.", width / 2, height / 2 + 12);
 }
 
+// --- Victory popup ---
 function drawVictoryPopup() {
   noStroke();
   fill(24, 8, 20, 205);
@@ -748,7 +769,6 @@ function drawVictoryPopup() {
 // ========================================
 // INPUT HANDLING
 // ========================================
-
 function mousePressed() {
   if (transitionActive) return;
 
@@ -818,9 +838,8 @@ function mousePressed() {
 }
 
 // ========================================
-// UTILITY FUNCTIONS
+// DRAWING HELP
 // ========================================
-
 function drawGlowingCake(cake, x, y, w, h, glowColor) {
   drawingContext.save();
   drawingContext.shadowColor = glowColor;
