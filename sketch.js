@@ -97,14 +97,9 @@ async function setup() {
   choosePoisonedCakes();
 
   startButton = createButton("Accept Invite");
-  startButton.size(200, 60);
+  startButton.size(200, 40);
   startButton.style("font-size", "24px");
-  startButton.style("background-color", "#FFB6C1");
-  startButton.style("border", "3px solid #FF69B4");
-  startButton.style("border-radius", "10px");
-  startButton.style("cursor", "pointer");
-  startButton.style("font-weight", "bold");
-  startButton.style("z-index", "10");
+  styleRoomButton(startButton);
   startButton.mousePressed(() => {
     transitionTo("venue");
   });
@@ -122,12 +117,7 @@ async function setup() {
   medicineButton.hide();
 
   backButton = createButton("← Back to Welcome");
-  backButton.style("font-size", "18px");
-  backButton.style("background-color", "#FFB6C1");
-  backButton.style("border", "3px solid #FF69B4");
-  backButton.style("border-radius", "10px");
-  backButton.style("cursor", "pointer");
-  backButton.style("font-weight", "bold");
+  styleRoomButton(backButton);
   backButton.mousePressed(() => {
     if (currentRoom === "cake") transitionTo("venue");
     else if (currentRoom === "medicine") transitionTo("cake");
@@ -138,8 +128,8 @@ async function setup() {
   restartButton = createButton("Try Again");
   restartButton.size(180, 52);
   restartButton.style("font-size", "20px");
-  restartButton.style("background-color", "#FFB6C1");
-  restartButton.style("border", "3px solid #FF69B4");
+  restartButton.style("background-color", "#e69898");
+  restartButton.style("border", "3px solid #8d0e00");
   restartButton.style("border-radius", "10px");
   restartButton.style("cursor", "pointer");
   restartButton.style("font-weight", "bold");
@@ -163,8 +153,8 @@ async function setup() {
 
 function styleRoomButton(button) {
   button.style("font-size", "22px");
-  button.style("background-color", "#FFB6C1");
-  button.style("border", "3px solid #FF69B4");
+  button.style("background-color", "#c49d5e");
+  button.style("border", "3px solid #603f14");
   button.style("border-radius", "10px");
   button.style("cursor", "pointer");
   button.style("font-weight", "bold");
@@ -218,14 +208,16 @@ async function transitionTo(room) {
     startRoomMusic(cakeMusic);
   }
 
+  if (room === "welcome") {
+    invitationOpened = false;
+    invitationAudioReady = !enteranceMusic.paused;
+  }
+
   transitionPending = false;
   transitionActive = true;
   transitionStartedAt = millis();
 
-  if (room === "welcome") {
-    invitationOpened = false;
-    invitationAudioReady = !enteranceMusic.paused;
-  } else if (room === "venue") {
+  if (room === "venue") {
     // startRoomMusic already switched to venue music.
   } else if (room === "cake") {
     // Keep cake music playing when returning from the medicine room.
@@ -249,7 +241,7 @@ function startRoomMusic(track) {
     });
 
     if (track) {
-      track.loop = true;
+      track.loop = track !== enteranceMusic;
       track.volume = 1;
       if (track.paused) {
         const playback = track.play();
@@ -326,6 +318,9 @@ function drawRoomTransition() {
   if (progress >= 1) {
     transitionActive = false;
     currentRoom = transitionToRoom;
+    if (currentRoom === "welcome") {
+      invitationAudioReady = !enteranceMusic.paused;
+    }
     updateRoomButtons();
   }
 }
@@ -408,7 +403,7 @@ function updateRoomButtons() {
     backButton.html("← Back to Welcome");
     backButton.position(24, 24);
     backButton.show();
-    enterTableButton.position(50, height - 120);
+    enterTableButton.position(CENTER, height - 120);
     enterTableButton.show();
   } else if (currentRoom === "cake") {
     backButton.html("← Back to Music Room");
@@ -443,18 +438,6 @@ function drawCakeTableScene() {
 
 function welcome() {
   image(castleimg, 0, 0, width, height);
-  fill(255, 255, 241);
-  textAlign(LEFT, CENTER);
-  textSize(32);
-  drawingContext.save();
-  drawingContext.shadowColor = "rgba(0, 0, 0, 0.9)";
-  drawingContext.shadowBlur = 14;
-  drawingContext.shadowOffsetX = 3;
-  drawingContext.shadowOffsetY = 2;
-
-  text("What's This? You have been invited to the Queen's Ball!", 50, height - 300);
-  textSize(20);
-  text("You're famished and curious about what kind of treats there could be.", 50, height - 250);
 
   drawingContext.restore();
   drawInvitationPopup();
@@ -466,6 +449,15 @@ function drawInvitationPopup() {
   noStroke();
   fill(20, 8, 18, 125);
   rect(0, 0, width, height);
+
+
+  fill(255, 255, 241);
+  textAlign(LEFT, CENTER);
+  textSize(32);
+  text("What's This? You have been invited to the Queen's Ball!", 50, height - 300);
+  textSize(20);
+  text("You're famished and curious about what kind of treats there could be.", 50, height - 250);
+
 
   drawingContext.save();
   drawingContext.shadowColor = "rgba(0, 0, 0, 0.65)";
